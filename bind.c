@@ -53,6 +53,10 @@ extern int errno;
 #endif /* !errno */
 
 #include "posixstat.h"
+#include <glob.h>
+#ifndef GLOB_PATHS
+#  define GLOB_PATHS (1 << 29)
+#endif
 
 /* System-specific feature definitions and include files. */
 #include "rldefs.h"
@@ -1064,7 +1068,7 @@ rl_read_init_file (const char *filename)
 }
 
 static int
-_rl_read_init_file (const char *filename, int include_level)
+_rl_read_init_file_single (const char *filename, int update_last, int include_level)
 {
   register int i;
   char *buffer, *openname, *line, *end;
@@ -1081,7 +1085,7 @@ _rl_read_init_file (const char *filename, int include_level)
   if (buffer == 0)
     return (errno);
   
-  if (include_level == 0 && filename != last_readline_init_file)
+  if (update_last && include_level == 0 && filename != last_readline_init_file)
     {
       FREE (last_readline_init_file);
       last_readline_init_file = savestring (filename);
@@ -1127,6 +1131,107 @@ _rl_read_init_file (const char *filename, int include_level)
   xfree (buffer);
   currently_reading_init_file = 0;
   return (0);
+}
+
+/* Return a copy of LIST with a leading ~ expanded in each ':'-separated
+   element; GLOB_PATHS search lists have no tilde syntax of their own.  */
+static char *
+_rl_tilde_expand_list (const char *list)
+{
+  char *result = 0;
+  size_t len = 0;
+  const char *p = list;
+
+  for (;;)
+    {
+      const char *end = strchr (p, ':');
+      size_t n = end ? (size_t)(end - p) : strlen (p);
+      char *elem = (char *)xmalloc (n + 1);
+      char *exp;
+      size_t elen;
+
+      memcpy (elem, p, n);
+      elem[n] = '\0';
+      exp = (*elem == '~') ? tilde_expand_word (elem) : elem;
+      elen = strlen (exp);
+      result = (char *)xrealloc (result, len + elen + 2);
+      memcpy (result + len, exp, elen);
+      len += elen;
+      if (exp != elem)
+	xfree (exp);
+      xfree (elem);
+      if (end == 0)
+	break;
+      result[len++] = ':';
+      p = end + 1;
+    }
+  result[len] = '\0';
+  return result;
+}
+
+static int
+_rl_read_init_file (const char *filename, int include_level)
+{
+  int r;
+
+  if (filename == 0)
+    return (ENOENT);
+
+  if (strpbrk (filename, "*?[") == 0)
+    {
+      r = _rl_read_init_file_single (filename, 1, include_level);
+      if (r == 0 || strchr (filename, ':') == 0 || r != ENOENT)
+	return (r);
+    }
+
+  {
+    glob_t gl;
+    int any_ok = 0;
+    int last_err = ENOENT;
+    char *pattern = _rl_tilde_expand_list (filename);
+
+    memset (&gl, 0, sizeof (gl));
+    if (glob (pattern, GLOB_PATHS, NULL, &gl) == 0)
+      {
+	size_t gi;
+	for (gi = 0; gi < gl.gl_pathc; ++gi)
+	  {
+	    struct stat st;
+	    const char *old_file;
+	    int old_line, old_level, old_reading;
+
+	    if (stat (gl.gl_pathv[gi], &st) == 0 && S_ISDIR (st.st_mode))
+	      continue;
+
+	    old_file = current_readline_init_file;
+	    old_line = current_readline_init_lineno;
+	    old_level = current_readline_init_include_level;
+	    old_reading = currently_reading_init_file;
+	    r = _rl_read_init_file_single (gl.gl_pathv[gi], 0, include_level);
+	    current_readline_init_file = old_file;
+	    current_readline_init_lineno = old_line;
+	    current_readline_init_include_level = old_level;
+	    currently_reading_init_file = old_reading;
+	    if (r == 0)
+	      any_ok = 1;
+	    else
+	      last_err = r;
+	  }
+      }
+    globfree (&gl);
+    xfree (pattern);
+
+    if (any_ok)
+      {
+	if (include_level == 0 && filename != last_readline_init_file)
+	  {
+	    FREE (last_readline_init_file);
+	    last_readline_init_file = savestring (filename);
+	  }
+	return (0);
+      }
+    return (last_err);
+  }
 }
 
 static void
