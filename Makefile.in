@@ -342,8 +342,12 @@ install-dvi:
 install-html:
 install-pdf:
 install-ps:
-check:
 installcheck:
+
+check: $(TARGETS)
+	CC='$(CC)' CFLAGS='$(ASAN_CFLAGS) $(CFLAGS)' LDFLAGS='$(ASAN_LDFLAGS) $(LDFLAGS)' \
+	TERMCAP_LIB='$(TERMCAP_LIB)' srcdir='$(srcdir)' \
+		$(SHELL) $(srcdir)/tests/inputrc-glob.sh
 
 dist:   force
 	@echo Readline distributions are created using $(srcdir)/support/mkdist.
