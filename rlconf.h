@@ -43,7 +43,9 @@
 #define DEFAULT_INPUTRC "~/.inputrc"
 
 /* The ultimate last-ditch filename for an init file -- system-wide. */
+#if !defined (SYS_INPUTRC)
 #define SYS_INPUTRC "/etc/inputrc"
+#endif
 
 /* If defined, expand tabs to spaces. */
 #define DISPLAY_TABS
