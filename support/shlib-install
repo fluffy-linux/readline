@@ -81,7 +81,7 @@ cygwin*|mingw*)
 	if [ -z "$uninstall" ]; then
 	:
 		if [ -f "$BINDIR/$LIBNAME" ]; then
-			${echo} $MV $BINDIR/$LIBNAME $BINDIR/$LIBNAME.$OLDSUFF
+			$echo $MV $BINDIR/$LIBNAME $BINDIR/$LIBNAME.$OLDSUFF
 		fi
 		${echo} $MV ${INSTALLDIR}/${LIBNAME} ${BINDIR}/${LIBNAME}
 		${echo} chmod a+x ${BINDIR}/${LIBNAME}
