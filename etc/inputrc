@@ -1,0 +1,29 @@
+# The system-wide inputrc, found through readline's SYS_INPUTRC search
+# list: read when there is no $INPUTRC and no ~/.inputrc.
+
+set horizontal-scroll-mode Off
+set meta-flag On
+set input-meta On
+set convert-meta Off
+set output-meta On
+set bell-style none
+
+"\eOd": backward-word
+"\eOc": forward-word
+"\e[1;5D": backward-word
+"\e[1;5C": forward-word
+"\e[1;3D": backward-word
+"\e[1;3C": forward-word
+
+"\e[1~": beginning-of-line
+"\e[4~": end-of-line
+"\e[5~": beginning-of-history
+"\e[6~": end-of-history
+"\e[3~": delete-char
+"\e[2~": quoted-insert
+
+"\eOH": beginning-of-line
+"\eOF": end-of-line
+"\e[H": beginning-of-line
+"\e[F": end-of-line
+

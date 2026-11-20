@@ -60,6 +60,7 @@ libdir = @libdir@
 mandir = @mandir@
 includedir = @includedir@
 datadir = @datadir@
+sysconfdir = @sysconfdir@
 localedir = @localedir@
 pkgconfigdir = ${libdir}/pkgconfig
 
@@ -257,7 +258,7 @@ uninstall-pc:
 
 maybe-uninstall-pc: uninstall-pc
 
-install-static: installdirs $(STATIC_LIBS) install-headers install-doc ${install_examples} install-pc
+install-static: installdirs $(STATIC_LIBS) install-headers install-doc install-inputrc ${install_examples} install-pc
 	$(INSTALL_DATA) libreadline.a $(DESTDIR)$(libdir)/libreadline.a
 	-test -n "$(RANLIB)" && $(RANLIB) $(DESTDIR)$(libdir)/libreadline.a
 	$(INSTALL_DATA) libhistory.a $(DESTDIR)$(libdir)/libhistory.a
@@ -267,14 +268,14 @@ installdirs: $(srcdir)/support/mkinstalldirs
 	-$(SHELL) $(srcdir)/support/mkinstalldirs $(DESTDIR)$(includedir) \
 		$(DESTDIR)$(includedir)/readline $(DESTDIR)$(libdir) \
 		$(DESTDIR)$(infodir) $(DESTDIR)$(man3dir) $(DESTDIR)$(docdir) \
-		$(DESTDIR)$(pkgconfigdir)
+		$(DESTDIR)$(pkgconfigdir) $(DESTDIR)$(sysconfdir)
 
-uninstall: uninstall-headers uninstall-doc uninstall-examples uninstall-pc
+uninstall: uninstall-headers uninstall-doc uninstall-inputrc uninstall-examples uninstall-pc
 	-test -n "$(DESTDIR)$(libdir)" && cd $(DESTDIR)$(libdir) && \
 		${RM} libreadline.a libreadline.old libhistory.a libhistory.old $(SHARED_LIBS)
 	-( cd shlib; ${MAKE} DESTDIR=${DESTDIR} uninstall )
 
-install-shared: installdirs install-headers shared install-doc install-pc
+install-shared: installdirs install-headers shared install-doc install-inputrc install-pc
 	( cd shlib ; ${MAKE} DESTDIR=${DESTDIR} install )
 	
 uninstall-shared: maybe-uninstall-headers maybe-uninstall-pc
@@ -292,6 +293,12 @@ install-doc:	installdirs
 		cd doc && \
 		${MAKE} infodir=$(infodir) DESTDIR=${DESTDIR} install; \
 	  fi )
+
+install-inputrc: installdirs
+	$(INSTALL_DATA) $(srcdir)/etc/inputrc $(DESTDIR)$(sysconfdir)/inputrc
+
+uninstall-inputrc:
+	-${RM} $(DESTDIR)$(sysconfdir)/inputrc
 
 uninstall-doc:
 	-( cd $(DESTDIR)$(docdir) && ${RM} ${OTHER_INSTALLED_DOCS} )
